@@ -121,7 +121,6 @@
         .btn-excel { background-color: #107c41; color: white; margin-bottom: 15px; width: 100%; font-size: 1.05em; padding: 12px; }
         .btn-download-masivo { background-color: #2e7d32; color: white; margin-bottom: 10px; width: 100%; font-size: 0.95em; padding: 10px; }
         .btn-backup { background-color: #7030a0; color: white; margin-bottom: 10px; }
-        .btn-sharepoint { background-color: #0078d4; color: white; display: inline-block; text-align: center; text-decoration: none; padding: 10px 15px; border-radius: 4px; font-weight: bold; width: 100%; box-sizing: border-box; margin-top: 5px;}
         
         .btn-action { padding: 5px 10px; font-size: 0.85em; width: auto; font-weight: bold; margin-right: 4px; border-radius: 4px; }
         
@@ -309,7 +308,7 @@
                             <div class="form-group">
                                 <label for="prod-prov">Proveedor (Viñeta):</label>
                                 <select id="prod-prov" required onchange="calcularDiagnosticoEnFormulario()">
-                                    </select>
+                                </select>
                             </div>
                             <div class="form-group">
                                 <label for="prod-qty">Cantidad Vencida / Próxima a Vencer:</label>
@@ -320,7 +319,7 @@
                                 <input type="date" id="prod-date" required>
                             </div>
                             <div class="form-group" id="form-diagnostico-container" style="display: none; margin-top: 10px;">
-                                <label>Diagnóstico por Viñeta Proveedor:</label>
+                                <label>Diagnóstico por Viñeta:</label>
                                 <div id="form-diagnostico-badge" style="padding: 10px; border-radius: 4px; font-weight: bold; text-align: center;"></div>
                             </div>
                             <button type="submit" class="btn-success">Agregar al Reporte</button>
@@ -330,7 +329,7 @@
                     <div id="admin-panel" class="card">
                         <h2>Cargar Políticas de Vencidos (.xlsx)</h2>
                         <div style="background-color: #fff8e1; padding: 12px; border-radius: 6px; margin-bottom: 20px; border: 1px dashed #ffb300;">
-                            <label style="font-size:0.85em; font-weight: bold; color:#b78103;">Subir archivo con columnas: Proveedor, Laboratorio, Observaciones</label>
+                            <label style="font-size:0.85em; font-weight: bold; color:#b78103;">Subir archivo con columnas: Proveedor, Laboratorio, Observations</label>
                             <input type="file" id="politicas-file-input" accept=".xlsx, .xls" style="padding:5px; font-size:0.9em; background: white; border: 1px solid #bdc3c7; width:100%; border-radius:4px; margin-top:5px;">
                             <small id="politicas-status-msg" style="color: #e65100; font-weight: bold; display:block; margin-top: 5px;"></small>
                         </div>
@@ -346,11 +345,6 @@
                         <div style="background-color: #eaf2f8; padding: 12px; border-radius: 6px; margin-bottom: 20px; border: 1px dashed #2980b9;">
                             <input type="file" id="ventas-file-input" accept=".xlsx, .xls" style="padding:5px; font-size:0.9em; background: white; border: 1px solid #bdc3c7; width:100%; border-radius:4px;">
                             <small id="ventas-status-msg" style="color: #27ae60; font-weight: bold; display:block; margin-top: 5px;"></small>
-                        </div>
-
-                        <h2>Enlaces en Línea (SharePoint)</h2>
-                        <div style="margin-bottom: 20px;">
-                            <a href="https://farmavalue-my.sharepoint.com/personal/eduard_hernandez_farmavalue_com/Documents/HTML/" target="_blank" class="btn-sharepoint">📁 Abrir Carpeta en SharePoint</a>
                         </div>
 
                         <h2>Copia de Seguridad (Backup)</h2>
@@ -384,7 +378,7 @@
                                     <option value="Admin">Administrador</option>
                                 </select>
                             </div>
-                            <button type="submit">Creamos Usuario</button>
+                            <button type="submit">Crear Usuario</button>
                         </form>
 
                         <h3 style="margin-top: 25px; font-size: 1.1em;">Usuarios Registrados y Permisos</h3>
@@ -468,7 +462,7 @@
                                         <th>Sucursal</th>
                                         <th>Producto</th>
                                         <th>Laboratorio</th>
-                                        <th>Proveedor (Viñeta)</th>
+                                        <th>Viñeta</th>
                                         <th>Cant. Vencida</th>
                                         <th>Estado Política</th>
                                         <th>Venta Sucursal</th>
@@ -499,11 +493,14 @@
         let usuarioActual = null;
         let globalVencidos = [];
 
-        // Arreglo global de proveedores válidos y fijos para la validación estricta
+        // BASE DE DATOS ACTUALIZADA CON EL LISTADO COMPLETO DE PROVEEDORES / VIÑETAS COMERCIALES
         const listaVinetasFijas = [
             "Leterago", "Inpomo", "Proconsumo", "Proconsumo VE", "Dromeinter", 
             "Andifar", "Higeafarma", "Medilab", "ECSA", "Unipharm", "DINSULA", 
-            "Pharmaetica", "AldoUnion", "DrogUniversal", "DrogHasther", "Drorisa", "Calox", "Siman"
+            "Pharmaetica", "AldoUnion", "DrogUniversal", "DrogHasther", "Drorisa", 
+            "Calox", "Siman", "Medwell", "Mefasa", "Chalver", "Megalabs", 
+            "LeClinique", "NutriTech", "Infarma", "Pisa", "GRIDENKA", "DrogFrancesa", 
+            "Inv&ProdVarios", "Karnel", "Lagomac", "MSN", "DrogRejuwe", "Venta especial"
         ];
 
         function despliegueFechaActual() {
@@ -537,13 +534,11 @@
             document.getElementById('total-products-msg').innerText = listadoProductos.length > 0 ? `Catálogo actual: ${listadoProductos.length} productos listos.` : "Catálogo vacío. Cargue el archivo oficial en el panel de administración.";
         }
 
-        // POBLACIÓN ESTÁTICA Y EXCLUSIVA DEL DESPLEGABLE DE VIÑETAS
         function actualizarSelectProveedores(valorPreseleccionado = "Sin Politica") {
             const selectProv = document.getElementById('prod-prov');
             if (!selectProv) return;
             
             selectProv.innerHTML = '';
-
             const opcionesCompletas = ["Sin Politica", ...listaVinetasFijas];
 
             opcionesCompletas.forEach(vineta => {
@@ -560,7 +555,6 @@
             calcularDiagnosticoEnFormulario();
         }
 
-        // DETECCIÓN AUTOMÁTICA COHERENTE CON LA LISTA FIJA
         function autoAsignarLaboratorioYProveedor() {
             const productoSeleccionado = document.getElementById('prod-name').value.trim();
             let labAsignado = "Sin Politica";
@@ -571,7 +565,6 @@
             
             document.getElementById('prod-lab').value = labAsignado;
 
-            // Busca coincidencia exacta con la lista estricta
             if (listaVinetasFijas.includes(labAsignado)) {
                 actualizarSelectProveedores(labAsignado);
             } else {
@@ -635,12 +628,10 @@
             }
         }
 
-        // EVALUACIÓN ESTÁTICA Y FIJA DE RECUPERACIÓN (CORREGIDO)
         function evaluarEstadoRecuperacion(proveedor) {
             if (!proveedor || proveedor === "" || proveedor === "Sin Politica") {
                 return "Irrecuperable";
             }
-            // Si el proveedor está listado de forma exacta en las viñetas fijas, es recuperable
             return listaVinetasFijas.includes(proveedor) ? "Recuperable" : "Irrecuperable";
         }
 
@@ -709,7 +700,7 @@
                 'Sucursal': item.sucursal || '',
                 'Producto': item.producto || '',
                 'Laboratorio': item.laboratorio || '',
-                'Proveedor': item.proveedor || '',
+                'Proveedor (Viñeta)': item.proveedor || '', 
                 'Cant. Vencida': parseInt(item.cantidad) || 0,
                 'Fecha de Vencimiento': item.fecha || '',
                 'Estado Gestión': item.estadoGestion || 'Pendiente',
@@ -722,7 +713,7 @@
                     'Sucursal': 'FA01',
                     'Producto': 'Abrilar Jarabe, frasco 200ml',
                     'Laboratorio': 'Megalabs',
-                    'Proveedor': 'Leterago',
+                    'Proveedor (Viñeta)': 'Leterago',
                     'Cant. Vencida': 10,
                     'Fecha de Vencimiento': '2026-12-31',
                     'Estado Gestión': 'Pendiente',
@@ -737,6 +728,7 @@
             XLSX.writeFile(libroTrabajo, "Formato_Carga_Masiva_Productos.xlsx");
         }
 
+        // CONTROL DE CARGA MASIVA INTEGRADO CON EL MAESTRO DE PROVEEDORES COMPLETO
         document.getElementById('productos-masivo-file-input').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -762,18 +754,38 @@
                             laboratorio = "Sin Politica";
                         }
 
-                        let proveedor = reg['Proveedor'] ? reg['Proveedor'].toString().trim() : "";
-                        if (proveedor === "") {
+                        // Mapeo flexible de la columna de proveedor de origen
+                        let proveedor = "Sin Politica";
+                        if (reg['Proveedor (Viñeta)']) {
+                            proveedor = reg['Proveedor (Viñeta)'].toString().trim();
+                        } else if (reg['Viñeta']) {
+                            proveedor = reg['Viñeta'].toString().trim();
+                        } else if (reg['Proveedor']) {
+                            proveedor = reg['Proveedor'].toString().trim();
+                        } else {
                             proveedor = laboratorio;
                         }
 
-                        let vineta = proveedor;
+                        // Validar si la viñeta pertenece a la lista autorizada global
+                        let coincidenciaLista = listaVinetasFijas.find(v => v.toLowerCase() === proveedor.toLowerCase());
+                        if (coincidenciaLista) {
+                            proveedor = coincidenciaLista; 
+                        } else {
+                            proveedor = "Sin Politica";
+                        }
+
                         let cantidad = reg['Cant. Vencida'] ? parseInt(reg['Cant. Vencida']) : 0;
                         let rawFechaVenc = reg['Fecha de Vencimiento'];
                         let fechaVencTexto = (rawFechaVenc instanceof Date && !isNaN(rawFechaVenc)) ? rawFechaVenc.toISOString().split('T')[0] : (rawFechaVenc ? rawFechaVenc.toString().trim() : "");
                         let registradoPor = reg['Registrado Por'] ? reg['Registrado Por'].toString().trim() : "Sistema";
+                        
                         let rawFechaReg = reg['Registrado El'];
                         let fechaRegTexto = (rawFechaReg instanceof Date && !isNaN(rawFechaReg)) ? rawFechaReg.toLocaleDateString('es-HN', { year: 'numeric', month: '2-digit', day: '2-digit' }) : (rawFechaReg ? rawFechaReg.toString().trim() : "");
+                        
+                        if (fechaRegTexto === "") {
+                            fechaRegTexto = new Date().toLocaleDateString('es-HN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+                        }
+                        
                         let estGestionExcel = reg['Estado Gestión'] ? reg['Estado Gestión'].toString().trim() : "Pendiente";
 
                         if (sucursal !== "" && producto !== "" && fechaVencTexto !== "") {
@@ -787,20 +799,26 @@
                             }
 
                             let mesRegistroTexto = "Indefinido", parsedRegDate = null;
-                            if (rawFechaReg instanceof Date) parsedRegDate = rawFechaReg;
-                            else if (fechaRegTexto.includes('/')) { const p = fechaRegTexto.split('/'); parsedRegDate = new Date(parseInt(p[2]), parseInt(p[1]) - 1, parseInt(p[0])); }
-                            else if (fechaRegTexto.includes('-')) { const p = fechaRegTexto.split('-'); parsedRegDate = new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2])); }
+                            if (rawFechaReg instanceof Date) {
+                                parsedRegDate = rawFechaReg;
+                            } else if (fechaRegTexto.includes('/')) { 
+                                const p = fechaRegTexto.split('/'); parsedRegDate = new Date(parseInt(p[2]), parseInt(p[1]) - 1, parseInt(p[0])); 
+                            } else if (fechaRegTexto.includes('-')) { 
+                                const p = fechaRegTexto.split('-'); parsedRegDate = new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2])); 
+                            }
 
                             if (parsedRegDate && !isNaN(parsedRegDate)) {
                                 const nMesReg = parsedRegDate.toLocaleString('es-HN', { month: 'long' });
                                 mesRegistroTexto = nMesReg.charAt(0).toUpperCase() + nMesReg.slice(1);
+                            } else {
+                                const nMesReg = new Date().toLocaleString('es-HN', { month: 'long' });
+                                mesRegistroTexto = nMesReg.charAt(0).toUpperCase() + nMesReg.slice(1);
                             }
 
-                            // Evaluación usando el proveedor corregido
                             let estadoRecuperacion = evaluarEstadoRecuperacion(proveedor);
 
                             globalVencidos.push({
-                                id: Date.now() + index, sucursal, producto, laboratorio, proveedor, vineta, cantidad, fecha: fechaVencTexto,
+                                id: Date.now() + index, sucursal, producto, laboratorio, proveedor, vineta: proveedor, cantidad, fecha: fechaVencTexto,
                                 mes: mesFormateado, anio: anioFormateado, fechaRegistro: fechaRegTexto, mesRegistro: mesRegistroTexto, 
                                 usuario: registradoPor, estadoRecuperacion: estadoRecuperacion, estadoGestion: estGestionExcel
                             });
@@ -811,11 +829,11 @@
                     localStorage.setItem('vencidos', JSON.stringify(globalVencidos));
                     actualizarSelectProveedores(document.getElementById('prod-prov').value);
                     actualizarTablaReporte();
-                    document.getElementById('productos-masivo-status').innerText = `✓ ¡Éxito! Se inyectaron al reporte ${nuevosRegistrosCargados} filas trabajadas.`;
-                    alert(`¡Carga masiva finalizada con éxito!\nSe añadieron ${nuevosRegistrosCargados} registros analizados según su viñeta.`);
+                    document.getElementById('productos-masivo-status').innerText = `✓ ¡Éxito! Se inyectaron al reporte ${nuevosRegistrosCargados} filas trabajadas desde el Excel.`;
+                    alert(`¡Carga masiva finalizada con éxito!\nSe añadieron ${nuevosRegistrosCargados} registros analizados según su proveedor/viñeta.`);
                     document.getElementById('productos-masivo-file-input').value = "";
                 } catch (error) {
-                    alert("Error crítico al analizar la estructura del Excel.");
+                    alert("Error crítico al analizar la estructura del Excel masivo.");
                 }
             };
             reader.readAsArrayBuffer(file);
@@ -935,6 +953,7 @@
             reader.readAsArrayBuffer(file);
         });
 
+        // Restauración desde Copias de Seguridad (.json)
         document.getElementById('backup-file-input').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -963,7 +982,6 @@
                             listadoProductos = datosRestaurados.catalogo;
                             globalVencidos = datosRestaurados.vencidos;
                             
-                            // Forzar recalcular estado de recuperación en base a la lista estricta tras restaurar
                             globalVencidos.forEach(item => {
                                 item.estadoRecuperacion = evaluarEstadoRecuperacion(item.proveedor);
                             });
@@ -1000,8 +1018,6 @@
         }
         
         globalVencidos = JSON.parse(localStorage.getItem('vencidos')) || [];
-        
-        // Ejecutar una limpieza inicial de los estados guardados para asegurar concordancia
         globalVencidos.forEach(item => {
             item.estadoRecuperacion = evaluarEstadoRecuperacion(item.proveedor);
         });
@@ -1045,6 +1061,8 @@
             usuarioActual = null;
             document.getElementById('dashboard').style.display = 'none';
             document.getElementById('login-container').style.display = 'block';
+            document.getElementById('login-user').value = '';
+            document.getElementById('login-pass').value = '';
         }
 
         function guardarProducto(e) {
@@ -1053,7 +1071,6 @@
             const producto = document.getElementById('prod-name').value.trim();
             const laboratorio = document.getElementById('prod-lab').value.trim() || "Sin Politica";
             const proveedor = document.getElementById('prod-prov').value; 
-            const vineta = proveedor !== "" ? proveedor : "Sin Politica"; 
             const cantidad = document.getElementById('prod-qty').value;
             const fecha = document.getElementById('prod-date').value;
 
@@ -1068,7 +1085,7 @@
             let estadoRecuperacion = evaluarEstadoRecuperacion(proveedor);
 
             globalVencidos.push({
-                id: Date.now(), sucursal, producto, laboratorio, proveedor, vineta, cantidad, fecha,
+                id: Date.now(), sucursal, producto, laboratorio, proveedor, vineta: proveedor, cantidad, fecha,
                 mes: mesFormateado, anio: fechaObj.getFullYear(), fechaRegistro: fechaRegistroTexto, 
                 mesRegistro: nMesReg.charAt(0).toUpperCase() + nMesReg.slice(1), usuario: usuarioActual.usuario,
                 estadoRecuperacion: estadoRecuperacion, estadoGestion: 'Pendiente'
@@ -1149,7 +1166,6 @@
                 let laboratorioDisplay = item.laboratorio || "Sin Politica";
                 let proveedorDisplay = item.proveedor || "Sin Politica";
                 
-                // Forzar re-evaluación en caliente al renderizar la tabla para mantener la coherencia
                 let estRec = evaluarEstadoRecuperacion(proveedorDisplay);
                 let badgeEstadoClase = estRec === "Recuperable" ? "badge-recuperable" : "badge-irrecuperable";
 
@@ -1227,7 +1243,7 @@
 
             if (listaVencidos.length === 0) { alert("No hay registros para exportar."); return; }
 
-            let xmlFile = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><style>table { border-collapse: collapse; font-family: 'Segoe UI', sans-serif; } th { background-color: #0056b3; color: #ffffff; font-weight: bold; text-align: center; border: 1px solid #dee2e6; height: 30px; } td { border: 1px solid #dee2e6; height: 22px; vertical-align: middle; } .fila-padre { background-color: #f2f4f7; font-weight: bold; } .top3 { background-color: #e2f0d9; italic: true; } .center { text-align: center; } .right { text-align: right; } </style></head><body><table><thead><tr><th>Sucursal Origen</th><th style="width:320px;">Producto / Medicamento</th><th>Laboratorio</th><th>Proveedor (Viñeta)</th><th>Cant. Vencida</th><th>Estado Política</th><th>Venta Histórica Origen</th><th>Estado Gestión</th><th>Mes Venc.</th><th>Año Venc.</th><th>Fecha Vencimiento</th><th>Registrado El</th><th style="width:300px;">Info Comercial / Destino Recomendado</th><th>Venta Histórica Destino</th></tr></thead><tbody>`;
+            let xmlFile = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><style>table { border-collapse: collapse; font-family: 'Segoe UI', sans-serif; } th { background-color: #0056b3; color: #ffffff; font-weight: bold; text-align: center; border: 1px solid #dee2e6; height: 30px; } td { border: 1px solid #dee2e6; height: 22px; vertical-align: middle; } .fila-padre { background-color: #f2f4f7; font-weight: bold; } .top3 { background-color: #e2f0d9; italic: true; } .center { text-align: center; } .right { text-align: right; } </style></head><body><table><thead><tr><th>Sucursal Origen</th><th style="width:320px;">Producto / Medicamento</th><th>Laboratorio</th><th>Viñeta</th><th>Cant. Vencida</th><th>Estado Política</th><th>Venta Histórica Origen</th><th>Estado Gestión</th><th>Mes Venc.</th><th>Año Venc.</th><th>Fecha Vencimiento</th><th>Registrado El</th><th style="width:300px;">Info Comercial / Destino Recomendado</th><th>Venta Histórica Destino</th></tr></thead><tbody>`;
 
             listaVencidos.forEach(item => {
                 let labExp = item.laboratorio || "Sin Politica";
