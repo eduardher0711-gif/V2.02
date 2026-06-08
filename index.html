@@ -307,7 +307,7 @@
                             </div>
                             <div class="form-group">
                                 <label for="prod-prov">Proveedor (Viñeta):</label>
-                                <select id="prod-prov" required onchange="calcularDiagnosticoEnFormulario()">
+                                <select id="prod-prov" onchange="calcularDiagnosticoEnFormulario()">
                                 </select>
                             </div>
                             <div class="form-group">
@@ -329,7 +329,7 @@
                     <div id="admin-panel" class="card">
                         <h2>Cargar Políticas de Vencidos (.xlsx)</h2>
                         <div style="background-color: #fff8e1; padding: 12px; border-radius: 6px; margin-bottom: 20px; border: 1px dashed #ffb300;">
-                            <label style="font-size:0.85em; font-weight: bold; color:#b78103;">Subir archivo con columnas: Proveedor, Laboratorio, Observations</label>
+                            <label style="font-size:0.85em; font-weight: bold; color:#b78103;">Subir archivo con columnas: <strong>Proveedor</strong>, <strong>Laboratorio</strong> y Observaciones</label>
                             <input type="file" id="politicas-file-input" accept=".xlsx, .xls" style="padding:5px; font-size:0.9em; background: white; border: 1px solid #bdc3c7; width:100%; border-radius:4px; margin-top:5px;">
                             <small id="politicas-status-msg" style="color: #e65100; font-weight: bold; display:block; margin-top: 5px;"></small>
                         </div>
@@ -489,7 +489,7 @@
         let listadoProductos = [];
         let mapaProductosLaboratorios = {}; 
         let mapaTop10Ventas = {}; 
-        let maestroPoliticas = {}; 
+        let maestroPoliticas = {}; // clave: 'proveedor||laboratorio' (lowercase) → { meses, observaciones }
         let usuarioActual = null;
         let globalVencidos = [];
 
@@ -586,33 +586,38 @@
                     
                     if (registros.length === 0) { alert("El archivo de políticas está vacío."); return; }
 
+                    // Clave: 'proveedor||laboratorio' (ambos en minúsculas) → { meses, observaciones }
                     let temporalesPoliticas = {};
                     let contadorCargados = 0;
 
                     registros.forEach(reg => {
-                        let lab = reg['Laboratorio'] ? reg['Laboratorio'].toString().trim() : "";
-                        let obs = reg['Observaciones'] ? reg['Observaciones'].toString().trim() : "";
-
-                        if (lab !== "") {
+                        let prov = (reg['Proveedor'] || reg['Viñeta'] || reg['Vineta'] || "").toString().trim();
+                        let lab  = (reg['Laboratorio'] || reg['laboratorio'] || "").toString().trim();
+                        let obs  = (reg['Observaciones'] || reg['Observations'] || "").toString().trim();
+                        if (prov !== "" && lab !== "") {
                             let numMatch = obs.match(/\d+/);
-                            let mesesLimite = numMatch ? parseInt(numMatch[0]) : 1; 
-                            temporalesPoliticas[lab] = mesesLimite;
+                            let mesesLimite = numMatch ? parseInt(numMatch[0]) : 1;
+                            let clave = prov.toLowerCase() + "||" + lab.toLowerCase();
+                            if (!temporalesPoliticas[clave] || mesesLimite > temporalesPoliticas[clave].meses) {
+                                temporalesPoliticas[clave] = { meses: mesesLimite, observaciones: obs };
+                            }
                             contadorCargados++;
                         }
                     });
 
                     maestroPoliticas = temporalesPoliticas;
                     localStorage.setItem('maestro_politicas_vencidos', JSON.stringify(maestroPoliticas));
-                    
+
                     globalVencidos.forEach(item => {
-                        item.estadoRecuperacion = evaluarEstadoRecuperacion(item.proveedor);
+                        item.estadoRecuperacion = evaluarEstadoRecuperacion(item.proveedor, item.laboratorio);
                     });
                     localStorage.setItem('vencidos', JSON.stringify(globalVencidos));
 
                     actualizarMensajeEstadoPoliticas();
                     actualizarSelectProveedores(document.getElementById('prod-prov').value);
                     actualizarTablaReporte();
-                    alert(`¡Éxito! Se cargaron las viñetas comerciales de ${contadorCargados} laboratorios.`);
+                    const numPares = Object.keys(temporalesPoliticas).length;
+                    alert(`¡Éxito! Se cargaron ${numPares} políticas (pares Viñeta + Laboratorio).`);
                 } catch (error) {
                     alert("Error al procesar el archivo de políticas.");
                 }
@@ -624,26 +629,45 @@
             const numLabs = Object.keys(maestroPoliticas).length;
             const msgEl = document.getElementById('politicas-status-msg');
             if (msgEl) {
-                msgEl.innerText = numLabs > 0 ? `✓ Viñetas comerciales activas: ${numLabs} laboratorios configurados.` : "Sin políticas adicionales cargadas.";
+                msgEl.innerText = numLabs > 0 ? `✓ Políticas activas: ${numLabs} pares Viñeta+Laboratorio cargados.` : "Sin políticas cargadas — todos los estados se basan en lista fija.";
             }
         }
 
-        function evaluarEstadoRecuperacion(proveedor) {
+        function evaluarEstadoRecuperacion(proveedor, laboratorio) {
+            // Sin proveedor asignado → siempre Irrecuperable
             if (!proveedor || proveedor === "" || proveedor === "Sin Politica") {
                 return "Irrecuperable";
             }
+            // Si hay políticas cargadas: SOLO es Recuperable si existe el par exacto Viñeta+Laboratorio
+            if (Object.keys(maestroPoliticas).length > 0) {
+                if (!laboratorio || laboratorio === "" || laboratorio === "Sin Politica") {
+                    return "Irrecuperable"; // Sin laboratorio definido no se puede confirmar política
+                }
+                let clave = proveedor.toLowerCase() + "||" + laboratorio.toLowerCase();
+                return maestroPoliticas[clave] ? "Recuperable" : "Irrecuperable";
+            }
+            // Sin políticas cargadas aún: fallback a lista fija
             return listaVinetasFijas.includes(proveedor) ? "Recuperable" : "Irrecuperable";
+        }
+
+        function obtenerPolitica(proveedor, laboratorio) {
+            if (!proveedor || !laboratorio || Object.keys(maestroPoliticas).length === 0) return null;
+            let clave = proveedor.toLowerCase() + "||" + laboratorio.toLowerCase();
+            return maestroPoliticas[clave] || null;
         }
 
         function calcularDiagnosticoEnFormulario() {
             const proveedor = document.getElementById('prod-prov').value;
+            const laboratorio = (document.getElementById('prod-lab').value || "").trim();
             const container = document.getElementById('form-diagnostico-container');
             const badge = document.getElementById('form-diagnostico-badge');
 
             if (proveedor && proveedor !== "") {
-                const res = evaluarEstadoRecuperacion(proveedor);
+                const res = evaluarEstadoRecuperacion(proveedor, laboratorio);
                 container.style.display = 'block';
-                badge.innerText = res.toUpperCase();
+                const politica = obtenerPolitica(proveedor, laboratorio);
+                badge.innerHTML = res.toUpperCase() +
+                    (politica ? '<br><small style="font-weight:normal;font-size:0.82em;margin-top:4px;display:block;">' + politica.observaciones + '</small>' : '');
                 if (res === "Recuperable") {
                     badge.style.backgroundColor = '#d4edda';
                     badge.style.color = '#155724';
@@ -815,7 +839,7 @@
                                 mesRegistroTexto = nMesReg.charAt(0).toUpperCase() + nMesReg.slice(1);
                             }
 
-                            let estadoRecuperacion = evaluarEstadoRecuperacion(proveedor);
+                            let estadoRecuperacion = evaluarEstadoRecuperacion(proveedor, laboratorio);
 
                             globalVencidos.push({
                                 id: Date.now() + index, sucursal, producto, laboratorio, proveedor, vineta: proveedor, cantidad, fecha: fechaVencTexto,
@@ -983,7 +1007,7 @@
                             globalVencidos = datosRestaurados.vencidos;
                             
                             globalVencidos.forEach(item => {
-                                item.estadoRecuperacion = evaluarEstadoRecuperacion(item.proveedor);
+                                item.estadoRecuperacion = evaluarEstadoRecuperacion(item.proveedor, item.laboratorio);
                             });
 
                             actualizarTablaReporte();
@@ -1019,7 +1043,7 @@
         
         globalVencidos = JSON.parse(localStorage.getItem('vencidos')) || [];
         globalVencidos.forEach(item => {
-            item.estadoRecuperacion = evaluarEstadoRecuperacion(item.proveedor);
+            item.estadoRecuperacion = evaluarEstadoRecuperacion(item.proveedor, item.laboratorio);
         });
 
         function login() {
@@ -1082,7 +1106,7 @@
             const fechaRegistroTexto = hoy.toLocaleDateString('es-HN', { year: 'numeric', month: '2-digit', day: '2-digit' });
             const nMesReg = hoy.toLocaleString('es-HN', { month: 'long' });
 
-            let estadoRecuperacion = evaluarEstadoRecuperacion(proveedor);
+            let estadoRecuperacion = evaluarEstadoRecuperacion(proveedor, laboratorio);
 
             globalVencidos.push({
                 id: Date.now(), sucursal, producto, laboratorio, proveedor, vineta: proveedor, cantidad, fecha,
@@ -1166,7 +1190,9 @@
                 let laboratorioDisplay = item.laboratorio || "Sin Politica";
                 let proveedorDisplay = item.proveedor || "Sin Politica";
                 
-                let estRec = evaluarEstadoRecuperacion(proveedorDisplay);
+                let estRec = evaluarEstadoRecuperacion(proveedorDisplay, laboratorioDisplay);
+                let politicaInfo = obtenerPolitica(proveedorDisplay, laboratorioDisplay);
+                let tooltipPolitica = politicaInfo ? ' title="' + politicaInfo.observaciones.replace(/"/g,'&quot;') + '"' : '';
                 let badgeEstadoClase = estRec === "Recuperable" ? "badge-recuperable" : "badge-irrecuperable";
 
                 let actualGestion = item.estadoGestion || "Pendiente";
@@ -1190,7 +1216,7 @@
                     <td><span class="badge" style="background-color: #eaf2f8; color: #2980b9; border: 1px solid #a9cce3; font-weight:bold;">${laboratorioDisplay}</span></td>
                     <td><span class="badge" style="background-color: #f1f3f5; color: #495057; border: 1px solid #ced4da; font-weight:bold;">${proveedorDisplay}</span></td>
                     <td style="font-weight: bold; text-align: center;">${parseInt(item.cantidad).toLocaleString('es-HN')}</td>
-                    <td><span class="badge ${badgeEstadoClase}">${estRec.toUpperCase()}</span></td>
+                    <td><span class="badge ${badgeEstadoClase}" ${tooltipPolitica} style="cursor:${politicaInfo?'help':'default'};">${estRec.toUpperCase()}${politicaInfo ? ' ℹ️' : ''}</span></td>
                     <td><span class="badge badge-venta">${ventaHistoricaSucursal.toLocaleString('es-HN')}</span></td>
                     <td style="text-align: center;">${selectorGestionHTML}</td>
                     <td><span class="badge" style="background-color: #f1f3f5; color: #495057;">${item.mes}</span></td>
@@ -1248,7 +1274,7 @@
             listaVencidos.forEach(item => {
                 let labExp = item.laboratorio || "Sin Politica";
                 let provExp = item.proveedor || "Sin Politica";
-                let estRec = evaluarEstadoRecuperacion(provExp);
+                let estRec = evaluarEstadoRecuperacion(provExp, labExp);
                 let estGestionTxt = item.estadoGestion || "Pendiente";
 
                 let ventaHistoricaSucursal = 0;
