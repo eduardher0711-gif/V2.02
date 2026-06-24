@@ -510,7 +510,7 @@
         // BASE DE DATOS ACTUALIZADA CON EL LISTADO COMPLETO DE PROVEEDORES / VIÑETAS COMERCIALES
         const listaVinetasFijas = [
             "AldoUnion", "Andifar", "Calox", "Chalver", "DINSULA",
-            "Dromeinter", "DrogFrancesa", "DrogHasther", "DrogRejuwe", "DrogUniversal",
+            "Dromeinter", "DrogFrancesa", "DrogGuardado", "DrogHasther", "DrogRejuwe", "DrogUniversal",
             "Drorisa", "ECSA", "GRIDENKA", "Higeafarma", "Infarma",
             "Inpomo", "Inv&ProdVarios", "Karnel", "Lagomac", "Lancasco", "LeClinique",
             "Leterago", "Medilab", "Medwell", "Mefasa", "MSN",
@@ -539,7 +539,6 @@
         generarListadoSucursales();
 
         function actualizarDatalistEnPantalla() {
-            // El autocomplete personalizado lee directamente desde listadoProductos — no necesita datalist
             document.getElementById('total-products-msg').innerText = listadoProductos.length > 0 ? `Catálogo actual: ${listadoProductos.length} productos listos.` : "Catálogo vacío. Cargue el archivo oficial en el panel de administración.";
         }
 
@@ -592,7 +591,6 @@
                 return;
             }
 
-            // Filtrar: primero los que empiezan con q, luego los que lo contienen
             const startsWith = listadoProductos.filter(p => p.toLowerCase().startsWith(q));
             const contains   = listadoProductos.filter(p => !p.toLowerCase().startsWith(q) && p.toLowerCase().includes(q));
             const resultados = [...startsWith, ...contains].slice(0, 80);
@@ -603,7 +601,6 @@
             }
 
             dd.innerHTML = resultados.map((p, i) => {
-                // Resaltar la parte que coincide
                 const lower = p.toLowerCase();
                 const idx   = lower.indexOf(q);
                 const highlighted = idx >= 0
@@ -660,7 +657,6 @@
             autoAsignarLaboratorioYProveedor(valor);
         }
 
-        // Cerrar dropdown al hacer clic fuera
         document.addEventListener('click', function(e) {
             if (!document.getElementById('autocomplete-wrapper').contains(e.target)) {
                 document.getElementById('ac-dropdown').style.display = 'none';
@@ -682,7 +678,6 @@
                     
                     if (registros.length === 0) { alert("El archivo de políticas está vacío."); return; }
 
-                    // Clave: 'proveedor||laboratorio' (ambos en minúsculas) → { meses, observaciones }
                     let temporalesPoliticas = {};
                     let contadorCargados = 0;
 
@@ -730,19 +725,16 @@
         }
 
         function evaluarEstadoRecuperacion(proveedor, laboratorio) {
-            // Sin proveedor asignado → siempre Irrecuperable
             if (!proveedor || proveedor === "" || proveedor === "Sin Politica") {
                 return "Irrecuperable";
             }
-            // Si hay políticas cargadas: SOLO es Recuperable si existe el par exacto Viñeta+Laboratorio
             if (Object.keys(maestroPoliticas).length > 0) {
                 if (!laboratorio || laboratorio === "" || laboratorio === "Sin Politica") {
-                    return "Irrecuperable"; // Sin laboratorio definido no se puede confirmar política
+                    return "Irrecuperable";
                 }
                 let clave = proveedor.toLowerCase() + "||" + laboratorio.toLowerCase();
                 return maestroPoliticas[clave] ? "Recuperable" : "Irrecuperable";
             }
-            // Sin políticas cargadas aún: fallback a lista fija
             return listaVinetasFijas.includes(proveedor) ? "Recuperable" : "Irrecuperable";
         }
 
@@ -874,7 +866,6 @@
                             laboratorio = "Sin Politica";
                         }
 
-                        // Mapeo flexible de la columna de proveedor de origen
                         let proveedor = "Sin Politica";
                         if (reg['Proveedor (Viñeta)']) {
                             proveedor = reg['Proveedor (Viñeta)'].toString().trim();
@@ -886,7 +877,6 @@
                             proveedor = laboratorio;
                         }
 
-                        // Validar si la viñeta pertenece a la lista autorizada global
                         let coincidenciaLista = listaVinetasFijas.find(v => v.toLowerCase() === proveedor.toLowerCase());
                         if (coincidenciaLista) {
                             proveedor = coincidenciaLista; 
